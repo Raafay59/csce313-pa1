@@ -12,6 +12,13 @@
 */
 #include "common.h"
 #include "FIFORequestChannel.h"
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <iostream>
+#include <cstdlib>
+#include <string>
+#include <cstring>
 
 using namespace std;
 
@@ -48,7 +55,6 @@ int main (int argc, char *argv[]) {
 				break;
 		}
 	}
-
 	// start server as child process (part 1)
 	pid_t pid = fork();
     if (pid == -1) {
@@ -57,7 +63,8 @@ int main (int argc, char *argv[]) {
 	} else if (pid == 0) {
 		// exec server
 		// server main declaration: int main (int argc, char *argv[])
-		execvp("./server", NULL);
+		char *args[] = {(char*) "./server", NULL}; 
+		execvp(args[0], args);
 		cerr << "Exec failed!" << endl;
 		return 1;
 	}
@@ -66,7 +73,7 @@ int main (int argc, char *argv[]) {
 	
 	// example data point request
     char buf[MAX_MESSAGE]; // 256
-    datamsg x(1, 0.0, 1);
+    datamsg x(p, t, e);
 	
 	memcpy(buf, &x, sizeof(datamsg));
 	chan.cwrite(buf, sizeof(datamsg)); // question
@@ -91,7 +98,7 @@ int main (int argc, char *argv[]) {
     MESSAGE_TYPE m = QUIT_MSG;
     chan.cwrite(&m, sizeof(MESSAGE_TYPE));
 	int status;
-	waitpid(pid, &status, 0);
+	wait(&status);
 	cout << "Client exiting" << endl;
 	return 0;
 }
