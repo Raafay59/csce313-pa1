@@ -196,10 +196,10 @@ int main(int argc, char *argv[])
 		ofs.close();
 	}
 	// first thousand lines request
-	else if (t == -1 && e == -1)
+	else if (t == -1 && e == -1 && p != -1)
 	{
 		cout << "thousand line request" << endl;
-		string write_to = "x1.csv";
+		string write_to = "received/x1.csv";
 		ofstream ofs(write_to);
 		if (ofs.fail())
 		{
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 		}
 		ofs.close();
 	}
-	else
+	else if (p != -1)
 	{
 		// example data point request
 		char buf[MAX_MESSAGE]; // 256
