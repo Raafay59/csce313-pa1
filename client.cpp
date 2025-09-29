@@ -76,9 +76,11 @@ int main(int argc, char *argv[])
 	double t = -1;
 	int e = -1;
 	int m = -1;
+	bool requested_channel = false;
+	vector<FIFORequestChannel*> channels;
 
 	string filename = "";
-	while ((opt = getopt(argc, argv, "p:t:e:f:m:")) != -1)
+	while ((opt = getopt(argc, argv, "p:t:e:f:m:c")) != -1)
 	{
 		switch (opt)
 		{
@@ -97,6 +99,9 @@ int main(int argc, char *argv[])
 		case 'm':
 			m = atoi(optarg);
 			break;
+		case 'c':
+			requested_channel = true;
+			break;
 		}
 	}
 	if (m < 1 || m > MAX_MESSAGE)
@@ -114,13 +119,24 @@ int main(int argc, char *argv[])
 	{
 		// exec server
 		// server main declaration: int main (int argc, char *argv[])
-		char *args[] = {(char *)"./server", NULL};
+		char *args[] = {(char *)"./server", (char *)"-m", (char *)to_string(m).c_str(), NULL};
 		execvp(args[0], args);
 		cerr << "Exec failed!" << endl;
 		return 1;
 	}
 
-	FIFORequestChannel chan("control", FIFORequestChannel::CLIENT_SIDE);
+	FIFORequestChannel cont_chan("control", FIFORequestChannel::CLIENT_SIDE);
+	channels.push_back(&cont_chan);
+	if (requested_channel) {
+		MESSAGE_TYPE nc = NEWCHANNEL_MSG;
+		cont_chan.cwrite(&nc, sizeof(MESSAGE_TYPE));
+		char buf[30];
+		cont_chan.cread(buf, 30);
+		string new_channel_name = string(buf);
+		FIFORequestChannel* new_chan = new FIFORequestChannel(new_channel_name, FIFORequestChannel::CLIENT_SIDE);
+		channels.push_back(new_chan);
+	}
+	FIFORequestChannel chan = *(channels.back());
 
 	if (filename != "")
 	{
@@ -221,12 +237,13 @@ int main(int argc, char *argv[])
 		cout << "For person " << p << ", at time " << t << ", the value of ecg " << e << " is " << reply << endl;
 	}
 
-	// closing the channel
-	// send a QUIT_MSG to the server and wait for the server to exit (part 1)
 	MESSAGE_TYPE q = QUIT_MSG;
-	chan.cwrite(&q, sizeof(MESSAGE_TYPE));
-	int status;
-	wait(&status);
-	cout << "Client exiting" << endl;
+	if (requested_channel) {
+		chan.cwrite(&q, sizeof(MESSAGE_TYPE));
+		delete channels.back();
+		channels.pop_back();
+	}
+	// closing the channel
+	cont_chan.cwrite(&q, sizeof(MESSAGE_TYPE));
 	return 0;
 }
