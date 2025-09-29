@@ -170,7 +170,13 @@ int main (int argc, char *argv[]) {
 	while ((opt = getopt(argc, argv, "m:")) != -1) {
 		switch (opt) {
 			case 'm':
-				buffercapacity = atoi(optarg);
+				int temp = atoi(optarg);
+				if (temp < 1 || temp > MAX_MESSAGE) {
+					buffercapacity = MAX_MESSAGE;
+				}
+				else {
+					buffercapacity = temp;
+				}
 				break;
 		}
 	}
